@@ -14,7 +14,7 @@ class SDNArpLearningSwitch(app_manager.RyuApp):   #class is the controller
     def __init__(self, *args, **kwargs):
         super(SDNArpLearningSwitch, self).__init__(*args, **kwargs)  #setting env
         self.mac_to_port = {}   #a dictionary to map mac address to switch ports
-        self.arp_table = {}   #dict to store ip to mac mapping for proxy logic
+        self.arp_table = {}     #dictionary to store ip to mac mapping for proxy logic
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -25,10 +25,10 @@ class SDNArpLearningSwitch(app_manager.RyuApp):   #class is the controller
         # Install table-miss flow entry: send all unknown packets to controller
         match = parser.OFPMatch()   # empty match to every incoming packet
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                          ofproto.OFPCML_NO_BUFFER)]   # action to tell the switch to send any unknown packet to the controller for inst
+                                          ofproto.OFPCML_NO_BUFFER)]   # action to tell the switch to send any unknown packet to the controller for instructions
         self.add_flow(datapath, 0, match, actions)
 
-    def add_flow(self, datapath, priority, match, actions, buffer_id=None):  #add a new rule into swicthes memory and packages into OF inst set
+    def add_flow(self, datapath, priority, match, actions, buffer_id=None):  #add a new rule into switch's memory and packages into OF instruction set
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -42,16 +42,16 @@ class SDNArpLearningSwitch(app_manager.RyuApp):   #class is the controller
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
 
-    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)  #triggered whenever switch recienves packet it doesnt recog
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)  #triggered whenever switch recieves packet it doesn't recognise
     def _packet_in_handler(self, ev):
         msg = ev.msg   # extract message
-        datapath = msg.datapath   
+        datapath = msg.datapath    #datapath object represents switch
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        in_port = msg.match['in_port']  #identifies  the port packet entered
+        in_port = msg.match['in_port']  #identifies the port packet entered
 
         pkt = packet.Packet(msg.data)   #decodes binary data
-        eth = pkt.get_protocols(ethernet.ethernet)[0]  #extracts the ethernet header to get mac addr
+        eth = pkt.get_protocols(ethernet.ethernet)[0]  #extracts the ethernet header to get mac address
 
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:  
             return
@@ -63,11 +63,11 @@ class SDNArpLearningSwitch(app_manager.RyuApp):   #class is the controller
 
         # 1. ARP Handling Logic
         if eth.ethertype == ether_types.ETH_TYPE_ARP:  #checks if incoming packet is arp message
-            arp_pkt = pkt.get_protocols(arp.arp)[0]   # extracts the arp details: ip and mac
-            self.arp_table[arp_pkt.src_ip] = src    # Learn the IP->MAC mapping
+            arp_pkt = pkt.get_protocols(arp.arp)[0]    # extracts the arp details: ip and mac
+            self.arp_table[arp_pkt.src_ip] = src       # learn the IP->MAC mapping
             
-            if arp_pkt.opcode == arp.ARP_REQUEST:  #checks for "who has thiss ip?""
-                if arp_pkt.dst_ip in self.arp_table:  #checks if the controller aldready knows the mac to arp req (ip)
+            if arp_pkt.opcode == arp.ARP_REQUEST:      #checks for "who has this ip?""
+                if arp_pkt.dst_ip in self.arp_table:   #checks if the controller aldready knows the mac to arp request (ip)
                     self.logger.info("Proxy ARP Reply from Controller for IP %s", arp_pkt.dst_ip)
                     self.send_arp_reply(datapath, self.arp_table[arp_pkt.dst_ip], arp_pkt, in_port)
                     return
@@ -79,10 +79,10 @@ class SDNArpLearningSwitch(app_manager.RyuApp):   #class is the controller
         self.mac_to_port[dpid][src] = in_port   #which port a specific host is using to reach switch
 
         # If destination MAC is known, set out_port, else Flood
-        if dst in self.mac_to_port[dpid]:   #checking if its already known which port is dest linked to
+        if dst in self.mac_to_port[dpid]:   #checking if its already known which port is destination linked to
             out_port = self.mac_to_port[dpid][dst]
         else:
-            out_port = ofproto.OFPP_FLOOD  #if not know send packet out of every port
+            out_port = ofproto.OFPP_FLOOD  #if not know send packet out of every port: flooding
 
         actions = [parser.OFPActionOutput(out_port)]
 
@@ -112,7 +112,7 @@ class SDNArpLearningSwitch(app_manager.RyuApp):   #class is the controller
         pkt.add_protocol(arp.arp(opcode=arp.ARP_REPLY,
                                  src_mac=dst_mac, src_ip=arp_pkt.dst_ip,    #fills arp answer: ie ip and mac
                                  dst_mac=arp_pkt.src_mac, dst_ip=arp_pkt.src_ip))
-        pkt.serialize()   #packet obj to binary bytes for trans
+        pkt.serialize()   #packet object to binary bytes for transmission
         
         actions = [datapath.ofproto_parser.OFPActionOutput(out_port)]
         out = datapath.ofproto_parser.OFPPacketOut(
