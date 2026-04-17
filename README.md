@@ -16,6 +16,8 @@ This project implements an ARP Proxy using the Ryu Controller and OpenFlow 1.3 t
 
 <br>NETWORK TOPOLOGY & DESIGN
 - Topology: A custom Mininet topology consisting of a central OpenFlow-enabled switch connected to 3 hosts.
+  
+  A single-switch, 3-host topology was chosen to clearly demonstrate ARP resolution and flow rule installation without unnecessary     path complexity.
 - Controller: Ryu Controller (Python 3.8 based).
 - Logic: The controller functions as a Learning Switch with advanced ARP Proxy capabilities to reduce broadcast traffic and optimize the discovery process.
 
@@ -27,7 +29,7 @@ This project implements an ARP Proxy using the Ryu Controller and OpenFlow 1.3 t
 
 3. Launch Mininet
 
-   sudo mn --topo single,3 --controller remote, ip=127.0.0.1 --mac
+   sudo mn --topo single,3 --controller remote,ip=127.0.0.1 --mac
    <img width="720" height="346" alt="image" src="https://github.com/user-attachments/assets/2f041fbf-1b04-488f-adf2-90e1a0fc0448" />
 
 5. Verify connectivity
@@ -58,7 +60,7 @@ This project implements an ARP Proxy using the Ryu Controller and OpenFlow 1.3 t
 
 The following metrics were used to validate the functional correctness and efficiency of the SDN project:
 - Connectivity (using ping)- Running pingall demonstrates successful end to end reachability. Initial pings show higher latency due to "Controller-Switch" handshake (Packet-In) while subsequent pings show minimal latency once flow rules are installed.
-- Throughput (using iperf)- High throughput confirms that after the initial flow rule installation, the data plane handles traffic at hardware capacity without further controller intervention.
+- Throughput (using iperf)- High throughput (43.7 Gbits/sec) confirms that after the initial flow rule installation, the data plane handles traffic at hardware capacity without further controller intervention.
 - Flow table validation using the command: sudo ovs-ofctl -O OpenFlow13 dump-flows s1
 
 <br>TEST SCENARIOS
